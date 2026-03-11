@@ -27,9 +27,10 @@ app.post('/', async (c) => {
 
   const event = result.data
 
-  // Store in DB
-  await prisma.event.create({
-    data: {
+  // Store in DB — upsert on event_id for idempotency (safe to retry)
+  await prisma.event.upsert({
+    where: { event_id: event.event_id },
+    create: {
       event_id: event.event_id,
       product: event.product,
       env: event.env,
@@ -39,6 +40,7 @@ app.post('/', async (c) => {
       occurred_at: new Date(event.occurred_at),
       metadata: event.metadata as object,
     },
+    update: {}, // already stored — no-op
   })
 
   // Notify Slack
